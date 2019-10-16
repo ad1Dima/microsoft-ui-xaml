@@ -3847,9 +3847,12 @@ namespace Windows.UI.Xaml.Tests.MUXControls.InteractionTests
 
                 var topSettingsItem = new Button(FindElement.ByName("SettingsTopNavPaneItem"));
                 topSettingsItem.Invoke();
+                Wait.ForIdle();
 
                 Log.Comment("Verify the top settings item is selected.");
                 readSettingsSelectedButton.Invoke();
+                Wait.ForIdle();
+
                 Verify.AreEqual(SettingsSelectionStateTextBlock.GetText(), "True");
 
                 Log.Comment("Flipping orientation: Top -> Left.");
@@ -3858,6 +3861,7 @@ namespace Windows.UI.Xaml.Tests.MUXControls.InteractionTests
 
                 Log.Comment("Verify the left settings item is selected.");
                 readSettingsSelectedButton.Invoke();
+                Wait.ForIdle();               
                 Verify.AreEqual(SettingsSelectionStateTextBlock.GetText(), "True");
 
                 Log.Comment("Flipping orientation: Left -> Top.");
@@ -3866,6 +3870,7 @@ namespace Windows.UI.Xaml.Tests.MUXControls.InteractionTests
 
                 Log.Comment("Verify the left top item is still selected.");
                 readSettingsSelectedButton.Invoke();
+                Wait.ForIdle();
                 Verify.AreEqual(SettingsSelectionStateTextBlock.GetText(), "True");
             }
         }
