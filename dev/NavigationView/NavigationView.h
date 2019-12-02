@@ -36,6 +36,8 @@ enum class NavigationRecommendedTransitionDirection
 
 static constexpr auto c_topNavRepeater = L"TopNavMenuItemsHost"sv;
 static constexpr auto c_leftRepeater = L"MenuItemsHost"sv;
+static constexpr auto c_topNavFooterRepeater = L"TopFooterMenuItemsHost"sv;
+static constexpr auto c_leftFooterRepeater = L"FooterMenuItemsHost"sv;
 static constexpr auto c_overflowRepeater = L"TopNavMenuItemsOverflowHost"sv;
 
 class NavigationView :
@@ -121,7 +123,7 @@ private:
     inline bool IsNavigationViewListSingleSelectionFollowsFocus();
     inline void UpdateSingleSelectionFollowsFocusTemplateSetting();
     void OnSelectedItemPropertyChanged(winrt::DependencyPropertyChangedEventArgs const& args);
-    void SetSelectedItemAndExpectItemInvokeWhenSelectionChangedIfNotInvokedFromAPI(winrt::IInspectable const& item);
+    void SetSelectedItemAndExpectItemInvokeWhenSelectionChangedIfNotInvokedFromAPI(winrt::IInspectable const& item, bool inFooter);
     void ChangeSelectStatusForItem(winrt::IInspectable const& item, bool selected);
     void UnselectPrevItem(winrt::IInspectable const& prevItem, winrt::IInspectable const& nextItem);
     void UndoSelectionAndRevertSelectionTo(winrt::IInspectable const& prevSelectedItem, winrt::IInspectable const& nextItem);
@@ -156,7 +158,7 @@ private:
     std::vector<int> FindMovableItemsRecoverToPrimaryList(float availableWidth, std::vector<int> const& includeItems);
     std::vector<int> FindMovableItemsToBeRemovedFromPrimaryList(float widthToBeRemoved, std::vector<int> const& excludeItems);
     std::vector<int> FindMovableItemsBeyondAvailableWidth(float availableWidth);
-    void KeepAtLeastOneItemInPrimaryList(std::vector<int> itemInPrimaryToBeRemoved, bool shouldKeepFirst);
+    void KeepAtLeastOneItemInPrimaryList(std::vector<int>& itemInPrimaryToBeRemoved, bool shouldKeepFirst);
     void UpdateTopNavigationWidthCache();
 
     int GetSelectedItemIndex();
@@ -168,7 +170,7 @@ private:
     bool IsTopNavigationView();
     bool IsTopPrimaryListVisible();
 
-    void CreateAndHookEventsToSettings(std::wstring_view settingsName);
+    void CreateAndHookEventsToSettings();
     void OnIsPaneOpenChanged();
     void UpdateHeaderVisibility();
     void UpdateHeaderVisibility(winrt::NavigationViewDisplayMode displayMode);
@@ -177,7 +179,6 @@ private:
     void UpdatePaneDisplayMode(winrt::NavigationViewPaneDisplayMode oldDisplayMode, winrt::NavigationViewPaneDisplayMode newDisplayMode);
     void UpdatePaneVisibility();
     void UpdateContentBindingsForPaneDisplayMode();
-    void UpdateSelectedItem();
     void UpdatePaneTabFocusNavigation();
     void UpdatePaneToggleSize();
     void UpdateBackAndCloseButtonsVisibility();
@@ -186,9 +187,11 @@ private:
     void UpdateTopNavRepeatersItemSource(const winrt::IInspectable& items);
     void UpdateItemsRepeaterItemsSource(const winrt::ItemsRepeater& listView, const winrt::IInspectable& itemsSource);
     void UpdateSelectionForMenuItems();
+    bool UpdateSelectedItemFormMenuItems(winrt::impl::com_ref<winrt::IVector<winrt::IInspectable>>& menuItems, bool foundFirstSelected = false);
     bool m_InitialNonForcedModeUpdate{ true };
 
     void UpdateRepeaterItemsSource(bool forceSelectionModelUpdate);
+    void UpdateFooterRepeaterItemsSource(bool forceSelectionModelUpdate);
 
     void OnSizeChanged(const winrt::IInspectable& sender, const winrt::SizeChangedEventArgs& args);
     void OnLayoutUpdated(const winrt::IInspectable& sender, const winrt::IInspectable& e);
@@ -234,7 +237,7 @@ private:
 
     void UpdateNavigationViewItemsFactory();
     void SyncItemTemplates();
-    winrt::IndexPath GetIndexPathForContainer(winrt::NavigationViewItemBase nvib);
+    std::tuple<winrt::IndexPath, bool> GetIndexPathForContainerAndCheckIfItInFooter(winrt::NavigationViewItemBase nvib);
     winrt::ItemsRepeater GetParentItemsRepeaterForContainer(winrt::NavigationViewItemBase nvib);
     winrt::FrameworkElement GetParentForFrameworkElement(winrt::FrameworkElement fe);
     bool IsRootItemsRepeater(winrt::hstring name);
@@ -280,8 +283,8 @@ private:
     bool ShouldShowFocusVisual();
     int LeftNavGetIndexFromItem(const winrt::IInspectable& data);
     winrt::IInspectable LeftNavGetItemFromIndex(int index);
-    winrt::NavigationViewItemBase GetContainerForIndexPath(const winrt::IndexPath& indexPath);
-    bool IsContainerTheSelectedItemInTheSelectionModel(winrt::NavigationViewItemBase nvib);
+    winrt::NavigationViewItemBase GetContainerForIndexPath(const winrt::IndexPath& indexPath, bool inFooter);
+    bool IsContainerTheSelectedItemInTheSelectionModel(winrt::NavigationViewItemBase nvib, winrt::SelectionModel selectionModel);
     bool IsContainerInOverflow(winrt::NavigationViewItemBase nvib);
     void KeyboardFocusFirstItemFromItem(winrt::NavigationViewItemBase nvib);
     void KeyboardFocusLastItemFromItem(winrt::NavigationViewItemBase nvib);
@@ -299,6 +302,8 @@ private:
     tracker_ref<winrt::Button> m_closeButton{ this };
     tracker_ref<winrt::ItemsRepeater> m_leftNavRepeater{ this };
     tracker_ref<winrt::ItemsRepeater> m_topNavRepeater{ this };
+    tracker_ref<winrt::ItemsRepeater> m_leftNavFooterMenuRepeater{ this };
+    tracker_ref<winrt::ItemsRepeater> m_topNavFooterMenuRepeater{ this };
     tracker_ref<winrt::Button> m_topNavOverflowButton{ this };
     tracker_ref<winrt::ItemsRepeater> m_topNavRepeaterOverflowView{ this };
     tracker_ref<winrt::Grid> m_topNavGrid{ this };
@@ -362,10 +367,19 @@ private:
     winrt::ItemsRepeater::ElementClearing_revoker m_topNavItemsRepeaterElementClearingRevoker{};
     winrt::ItemsRepeater::Loaded_revoker m_topNavRepeaterLoadedRevoker{};
 
+    winrt::ItemsRepeater::ElementPrepared_revoker m_leftNavFooterMenuItemsRepeaterElementPreparedRevoker{};
+    winrt::ItemsRepeater::ElementClearing_revoker m_leftNavFooterMenuItemsRepeaterElementClearingRevoker{};
+    winrt::ItemsRepeater::Loaded_revoker m_leftNavFooterMenuRepeaterLoadedRevoker{};
+
+    winrt::ItemsRepeater::ElementPrepared_revoker m_topNavFooterMenuItemsRepeaterElementPreparedRevoker{};
+    winrt::ItemsRepeater::ElementClearing_revoker m_topNavFooterMenuItemsRepeaterElementClearingRevoker{};
+    winrt::ItemsRepeater::Loaded_revoker m_topNavFooterMenuRepeaterLoadedRevoker{};
+
     winrt::ItemsRepeater::ElementPrepared_revoker m_topNavOverflowItemsRepeaterElementPreparedRevoker{};
     winrt::ItemsRepeater::ElementClearing_revoker m_topNavOverflowItemsRepeaterElementClearingRevoker{};
 
     winrt::SelectionModel::SelectionChanged_revoker m_selectionChangedEventToken{};
+    winrt::SelectionModel::SelectionChanged_revoker m_footerSelectionChangedEventToken{};
 
     bool m_wasForceClosed{ false };
     bool m_isClosedCompact{ false };
@@ -375,6 +389,7 @@ private:
     TopNavigationViewDataProvider m_topDataProvider{ this };
 
     winrt::SelectionModel m_selectionModel{};
+    winrt::SelectionModel m_footerSelectionModel{};
     com_ptr<NavigationViewItemsFactory> m_navigationViewItemsFactory{ nullptr };
 
     bool m_appliedTemplate{ false };

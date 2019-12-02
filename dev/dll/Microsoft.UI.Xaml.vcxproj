@@ -133,7 +133,7 @@
     <Import Project="..\SplitView\SplitView.vcxitems" Label="Shared" Condition="$(FeatureScrollBarEnabled) == 'true' Or $(FeatureScrollBarEnabled) == 'productOnly'" />
     <Import Project="..\ContentDialog\ContentDialog.vcxitems" Label="Shared" Condition="$(FeatureContentDialogEnabled) == 'true' Or $(FeatureContentDialogEnabled) == 'productOnly'" />
     <Import Project="..\ProgressBar\ProgressBar.vcxitems" Label="Shared" Condition="$(FeatureProgressBarEnabled) == 'true' Or $(FeatureProgressBarEnabled) == 'productOnly'" />
-	  <Import Project="..\NumberBox\NumberBox.vcxitems" Label="Shared" Condition="$(FeatureNumberBoxEnabled) == 'true' Or $(FeatureNumberBoxEnabled) == 'productOnly'" />
+    <Import Project="..\NumberBox\NumberBox.vcxitems" Label="Shared" Condition="$(FeatureNumberBoxEnabled) == 'true' Or $(FeatureNumberBoxEnabled) == 'productOnly'" />
   </ImportGroup>
   <ItemGroup>
     <SharedPage Include="@(Page)" />
@@ -224,7 +224,7 @@
         $(MiniWindowsSDKIncludePath);
       </AdditionalIncludeDirectories>
       <AdditionalOptions>/std:c++17 /bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions>/Wv:18 /Zm1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Wv:18 /Zm2000 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)'=='Release'">%(AdditionalOptions) /d2FH4</AdditionalOptions>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
