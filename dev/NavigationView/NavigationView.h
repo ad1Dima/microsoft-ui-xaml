@@ -167,6 +167,8 @@ private:
 
     bool BumperNavigation(int offset);
 
+    bool SelectSelectableItemWithOffset(int startIndex, int offset, winrt::ItemsRepeater const& repeater, int repeaterCollectionSize);
+
     bool IsTopNavigationView();
     bool IsTopPrimaryListVisible();
 

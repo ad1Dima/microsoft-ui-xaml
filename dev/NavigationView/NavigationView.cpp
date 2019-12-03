@@ -2106,33 +2106,72 @@ bool NavigationView::BumperNavigation(int offset)
     {
         if (auto nvi = NavigationViewItemOrSettingsContentFromData(item))
         {
-            auto index = m_topDataProvider.IndexOf(item, PrimaryList);
+            auto [indexPath, isInFooter] = GetIndexPathForContainerAndCheckIfItInFooter(nvi);
 
-            if (index >= 0)
+            auto indexInMainList = isInFooter ? -1 : indexPath.GetAt(0);
+            auto indexInFooter = isInFooter ? indexPath.GetAt(0) : -1;
+
+            auto topNavRepeater = m_topNavRepeater.get();
+            auto topPrimaryListSize = m_topDataProvider.GetPrimaryListSize();
+
+            auto footerRepeater = m_topNavFooterMenuRepeater.get();
+            auto footerItemsSize = FooterMenuItems().Size();
+
+            if (indexInMainList >= 0)
             {
-                auto topNavRepeater = m_topNavRepeater.get();
-                auto topPrimaryListSize = m_topDataProvider.GetPrimaryListSize();
-                index += offset;
 
-                while (index > -1 && index < topPrimaryListSize)
+                if (SelectSelectableItemWithOffset(indexInMainList, offset, topNavRepeater, topPrimaryListSize))
                 {
-                    auto newItem = topNavRepeater.TryGetElement(index);
-                    if (auto newNavViewItem = newItem.try_as<winrt::NavigationViewItem>())
-                    {
-                        // This is done to skip Separators or other items that are not NavigationViewItems
-                        if (winrt::get_self<NavigationViewItem>(newNavViewItem)->SelectsOnInvoked())
-                        {
-                            newNavViewItem.IsSelected(true);
-                            return true;
-                        }
-                    }
+                    return true;
+                }
 
-                    index += offset;
+                // No sutable item found in main list so try to select item in footer
+                if (offset > 0)
+                {
+                    return SelectSelectableItemWithOffset(-1, offset, footerRepeater, footerItemsSize);
+                }
+
+                return false;
+            }
+
+            if (indexInFooter >= 0)
+            {
+
+                if (SelectSelectableItemWithOffset(indexInFooter, offset, footerRepeater, footerItemsSize))
+                {
+                    return true;
+                }
+
+                // No sutable item found in footer so try to select item in main list
+                if (offset < 0)
+                {
+                    return SelectSelectableItemWithOffset(topPrimaryListSize, offset, topNavRepeater, topPrimaryListSize);
                 }
             }
         }
     }
 
+    return false;
+}
+
+bool NavigationView::SelectSelectableItemWithOffset(int startIndex, int offset, winrt::ItemsRepeater const& repeater, int repeaterCollectionSize)
+{
+    startIndex += offset;
+    while (startIndex > -1 && startIndex < repeaterCollectionSize)
+    {
+        auto newItem = repeater.TryGetElement(startIndex);
+        if (auto newNavViewItem = newItem.try_as<winrt::NavigationViewItem>())
+        {
+            // This is done to skip Separators or other items that are not NavigationViewItems
+            if (winrt::get_self<NavigationViewItem>(newNavViewItem)->SelectsOnInvoked())
+            {
+                newNavViewItem.IsSelected(true);
+                return true;
+            }
+        }
+
+        startIndex += offset;
+    }
     return false;
 }
 
