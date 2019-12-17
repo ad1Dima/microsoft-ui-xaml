@@ -1643,8 +1643,8 @@ bool NavigationView::BumperNavigation(int offset)
     auto shoulderNavigationEnabledParamValue = ShoulderNavigationEnabled();
     auto shoulderNavigationForcedDisabled = (shoulderNavigationEnabledParamValue == winrt::NavigationViewShoulderNavigationEnabled::Never);
 
-    if (!IsTopNavigationView() 
-        || !IsNavigationViewListSingleSelectionFollowsFocus() 
+    if (!IsTopNavigationView()
+        || !IsNavigationViewListSingleSelectionFollowsFocus()
         || shoulderNavigationForcedDisabled)
     {
         return false;
@@ -1667,34 +1667,66 @@ bool NavigationView::BumperNavigation(int offset)
     {
         if (auto nvi = NavigationViewItemOrSettingsContentFromData(item))
         {
-            auto index = m_topDataProvider.IndexOf(item, PrimaryList);
+            auto topNavListView = m_topNavListView.get();
+            auto topNavFooterListView = m_topFooterNavListView.get();
+            auto indexInPrimaryList = m_topDataProvider.IndexOf(item, PrimaryList);
+            auto indexInFooter = topNavFooterListView.Items.IndexOf(item);
+            auto topPrimaryListSize = m_topDataProvider.GetPrimaryListSize();
 
-            if (index >= 0)
+            if (indexInPrimaryList >= 0)
             {
-                auto topNavListView = m_topNavListView.get();
-                auto itemsList = topNavListView.Items();
-                auto topPrimaryListSize = m_topDataProvider.GetPrimaryListSize();
-                index += offset;
 
-                while (index > -1 && index < topPrimaryListSize)
+                if (SelectSelectableItemWithOffset(indexInPrimaryList, offset, topNavListView, topPrimaryListSize))
                 {
-                    auto newItem = itemsList.GetAt(index);
-                    if (auto newNavViewItem = newItem.try_as<winrt::NavigationViewItem>())
-                    {
-                        // This is done to skip Separators or other items that are not NavigationViewItems
-                        if (winrt::get_self<NavigationViewItem>(newNavViewItem)->SelectsOnInvoked())
-                        {
-                            topNavListView.SelectedItem(newItem);
-                            return true;
-                        }
-                    }
-
-                    index += offset;
+                    return true;
                 }
+
+                if (offset > 0)
+                {
+                    return SelectSelectableItemWithOffset(-1, offset, topNavFooterListView, topNavFooterListView.Items);
+                }
+
+                return false;
+            }
+
+            if (indexInFooter >= 0)
+            {
+                if (SelectSelectableItemWithOffset(indexInFooter, offset, topNavFooterListView, topNavFooterListView.Items))
+                {
+                    return true;
+                }
+
+                if (offset < 0)
+                {
+                    return SelectSelectableItemWithOffset(topPrimaryListSize, offset, topNavListView, topPrimaryListSize);
+                }
+
+                return false;
             }
         }
     }
 
+    return false;
+}
+
+bool NavigationView::SelectSelectableItemWithOffset(int startIndex, int offset, winrt::ListView const& listView, int listViewCollectionSize)
+{
+    auto index = startIndex + offset;
+    while (index > -1 && index < listViewCollectionSize)
+    {
+        auto newItem = listView.Items.GetAt(index);
+        if (auto newNavViewItem = newItem.try_as<winrt::NavigationViewItem>())
+        {
+            // This is done to skip Separators or other items that are not NavigationViewItems
+            if (winrt::get_self<NavigationViewItem>(newNavViewItem)->SelectsOnInvoked())
+            {
+                listView.SelectedItem(newItem);
+                return true;
+            }
+        }
+
+        index += offset;
+    }
     return false;
 }
 
